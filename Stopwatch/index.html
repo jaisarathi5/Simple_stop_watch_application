@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Modern Stopwatch</title>
+<style>
+    /* ── Reset & Base ── */
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    }
+
+    body {
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: #0b0b12;
+        background-image:
+            radial-gradient(ellipse at 20% 50%, #1a1030 0%, transparent 60%),
+            radial-gradient(ellipse at 80% 50%, #1a1030 0%, transparent 60%),
+            radial-gradient(ellipse at 50% 100%, #1a0a2e 0%, transparent 50%);
+        padding: 1rem;
+    }
+
+    /* ── Card with Gold Frame ── */
+    .card {
+        width: 420px;
+        max-width: 100%;
+        background: #ffffff;
+        padding: 2rem 2rem 2.2rem;
+        border-radius: 28px;
+        text-align: center;
+        border: 3px solid #d4af37;
+        box-shadow:
+            0 0 0 1px rgba(212, 175, 55, 0.15),
+            0 20px 60px rgba(80, 40, 140, 0.20),
+            0 0 30px rgba(212, 175, 55, 0.12);
+        position: relative;
+        overflow: hidden;
+        transition: box-shadow 0.3s ease;
+    }
+
+    /* gold inner glow for card */
+    .card::after {
+        content: '';
+        position: absolute;
+        inset: -2px;
+        border-radius: 30px;
+        padding: 2px;
+        background: linear-gradient(135deg, #f9e08a, #d4af37, #b8860b, #d4af37, #f9e08a);
+        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+        pointer-events: none;
+        opacity: 0.5;
+    }
+
+    /* violet accent line at top */
+    .card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 10%;
+        right: 10%;
+        height: 4px;
+        background: linear-gradient(90deg, transparent, #6d3b9e, #9b6bcf, #6d3b9e, transparent);
+        border-radius: 0 0 4px 4px;
+        z-index: 2;
+    }
+
+    /* ── Title ── */
+    h1 {
+        font-size: 1.6rem;
+        font-weight: 700;
+        letter-spacing: 1px;
+        color: #1a1a1a;
+        margin-bottom: 0.1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    h1 span {
+        background: linear-gradient(135deg, #6d3b9e, #4a2c8a);
+        color: #fff;
+        font-size: 1rem;
+        padding: 0.1rem 0.7rem;
+        border-radius: 40px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+    }
+
+    .subtitle {
+        font-size: 0.75rem;
+        color: #999;
+        letter-spacing: 3px;
+        text-transform: uppercase;
+        margin-top: -0.2rem;
+        margin-bottom: 1.5rem;
+        border-bottom: 1px solid #f0f0f0;
+        padding-bottom: 0.75rem;
+    }
+    .subtitle span {
+        color: #6d3b9e;
+        font-weight: 600;
+    }
+
+    /* ── Display – fixed to fit numbers ── */
+    .time {
+        background: #0b0b12;
+        color: #ffffff;
+        font-size: 2.8rem;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: 0.15rem;
+        padding: 0.7rem 1.2rem;
+        border-radius: 16px;
+        margin-bottom: 1.6rem;
+        font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+        border: 3px solid #d4af37;
+        box-shadow: 
+            0 0 0 1px rgba(212, 175, 55, 0.25),
+            0 0 25px rgba(212, 175, 55, 0.20),
+            inset 0 0 20px rgba(212, 175, 55, 0.05);
+        transition: box-shadow 0.3s ease, color 0.2s;
+        /* Ensure numbers never overflow */
+        overflow: hidden;
+        white-space: nowrap;
+        width: 100%;
+        min-height: 4.8rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-sizing: border-box;
+    }
+
+    /* Running state – violet glow + gold */
+    .time.running {
+        color: #b38bdb;
+        text-shadow: 0 0 18px rgba(109, 59, 158, 0.35);
+        box-shadow: 
+            0 0 0 1px rgba(212, 175, 55, 0.4),
+            0 0 35px rgba(212, 175, 55, 0.25),
+            0 0 60px rgba(109, 59, 158, 0.15),
+            inset 0 0 25px rgba(212, 175, 55, 0.08);
+    }
+
+    /* ── Buttons ── */
+    .buttons {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.6rem;
+        margin-bottom: 1.6rem;
+    }
+
+    .buttons button {
+        flex: 1 0 auto;
+        min-width: 70px;
+        padding: 0.7rem 0.5rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+        border: none;
+        border-radius: 40px;
+        cursor: pointer;
+        transition: all 0.25s ease;
+        letter-spacing: 0.3px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.3rem;
+        background: #f0f0f0;
+        color: #1a1a1a;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+    }
+
+    .buttons button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.10);
+    }
+    .buttons button:active {
+        transform: translateY(0px);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+    }
+
+    /* Start – Violet gradient */
+    .buttons .start {
+        background: linear-gradient(135deg, #6d3b9e, #4a2c8a);
+        color: #fff;
+        box-shadow: 0 4px 16px rgba(109, 59, 158, 0.35);
+    }
+    .buttons .start:hover {
+        background: linear-gradient(135deg, #7f4bb3, #55339a);
+        box-shadow: 0 8px 28px rgba(109, 59, 158, 0.45);
+    }
+    .buttons .start:active {
+        background: linear-gradient(135deg, #5a2f85, #3d2373);
+    }
+
+    /* Stop – Charcoal black */
+    .buttons .stop {
+        background: #1a1a1a;
+        color: #fff;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.20);
+    }
+    .buttons .stop:hover {
+        background: #2d2d2d;
+        box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25);
+    }
+    .buttons .stop:active {
+        background: #0b0b0b;
+    }
+
+    /* Reset – White with gold border */
+    .buttons .reset {
+        background: #ffffff;
+        color: #1a1a1a;
+        border: 2px solid #d4af37;
+        box-shadow: 0 2px 6px rgba(212, 175, 55, 0.08);
+    }
+    .buttons .reset:hover {
+        border-color: #b8960c;
+        background: #fdfaf5;
+        box-shadow: 0 8px 20px rgba(212, 175, 55, 0.12);
+    }
+
+    /* Lap – Violet outline / white */
+    .buttons .lap {
+        background: #ffffff;
+        color: #6d3b9e;
+        border: 2px solid #6d3b9e;
+        box-shadow: 0 2px 6px rgba(109, 59, 158, 0.08);
+    }
+    .buttons .lap:hover {
+        background: #6d3b9e;
+        color: #fff;
+        border-color: #6d3b9e;
+        box-shadow: 0 8px 24px rgba(109, 59, 158, 0.25);
+    }
+    .buttons .lap:active {
+        background: #4a2c8a;
+        border-color: #4a2c8a;
+    }
+
+    /* ── Laps ── */
+    .laps {
+        margin-top: 0.2rem;
+        text-align: left;
+        max-height: 170px;
+        overflow-y: auto;
+        padding-right: 0.2rem;
+        border-top: 1px solid #f0f0f0;
+        padding-top: 0.8rem;
+    }
+
+    .laps::-webkit-scrollbar {
+        width: 4px;
+    }
+    .laps::-webkit-scrollbar-track {
+        background: #f0f0f0;
+        border-radius: 8px;
+    }
+    .laps::-webkit-scrollbar-thumb {
+        background: #d4af37;
+        border-radius: 8px;
+    }
+
+    .lap-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 0.6rem;
+        margin-bottom: 0.25rem;
+        border-radius: 10px;
+        background: #fafafa;
+        border-left: 4px solid #d4af37;
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: #1a1a1a;
+        transition: background 0.15s;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+    }
+
+    .lap-item:hover {
+        background: #f4f0fa;
+    }
+
+    .lap-item span:first-child {
+        color: #888;
+        font-weight: 600;
+        font-size: 0.8rem;
+        letter-spacing: 0.5px;
+    }
+
+    .lap-item span:last-child {
+        font-family: 'JetBrains Mono', 'Fira Code', monospace;
+        font-weight: 600;
+        color: #6d3b9e;
+        font-size: 0.95rem;
+        background: rgba(109, 59, 158, 0.08);
+        padding: 0.1rem 0.7rem;
+        border-radius: 40px;
+    }
+
+    .empty-laps-msg {
+        text-align: center;
+        color: #bbb;
+        font-size: 0.8rem;
+        letter-spacing: 0.5px;
+        padding: 0.6rem 0;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 480px) {
+        .card {
+            padding: 1.5rem 1.2rem 1.8rem;
+            border-width: 2px;
+        }
+        .time {
+            font-size: 2.1rem;
+            padding: 0.6rem 1rem;
+            min-height: 4rem;
+            border-width: 2px;
+        }
+        h1 {
+            font-size: 1.3rem;
+        }
+        .buttons button {
+            min-width: 60px;
+            padding: 0.6rem 0.3rem;
+            font-size: 0.75rem;
+        }
+    }
+
+    @media (max-width: 380px) {
+        .time {
+            font-size: 1.5rem;
+            padding: 0.5rem 0.8rem;
+            min-height: 3.2rem;
+            letter-spacing: 0.1rem;
+        }
+        .buttons {
+            gap: 0.35rem;
+        }
+        .buttons button {
+            min-width: 50px;
+            font-size: 0.7rem;
+            padding: 0.5rem 0.2rem;
+        }
+    }
+
+    /* for very large numbers (hours) we scale down further */
+    @media (max-width: 600px) {
+        .time {
+            font-size: clamp(1.4rem, 5.5vw, 2.8rem);
+        }
+    }
+</style>
+</head>
+<body>
+
+<div class="card">
+
+    <h1>
+        ⏱ Stopwatch
+        <span>LIVE</span>
+    </h1>
+    <div class="subtitle">violet · white · black · <span>gold</span></div>
+
+    <div class="time" id="display">
+        00:00:00.00
+    </div>
+
+    <div class="buttons">
+        <button class="start" onclick="startTimer()">▶ Start</button>
+        <button class="stop" onclick="stopTimer()">⏸ Stop</button>
+        <button class="reset" onclick="resetTimer()">⟲ Reset</button>
+        <button class="lap" onclick="lapTime()">🏁 Lap</button>
+    </div>
+
+    <div class="laps" id="laps">
+        <div class="empty-laps-msg">— no laps yet —</div>
+    </div>
+
+</div>
+
+<script>
+    let startTime = 0;
+    let elapsed = 0;
+    let timer = null;
+    let running = false;
+    let lapCount = 1;
+
+    const display = document.getElementById('display');
+    const laps = document.getElementById('laps');
+
+    function format(ms) {
+        const hours = Math.floor(ms / 3600000);
+        const minutes = Math.floor((ms % 3600000) / 60000);
+        const seconds = Math.floor((ms % 60000) / 1000);
+        const centiseconds = Math.floor((ms % 1000) / 10);
+
+        return String(hours).padStart(2, '0') + ':' +
+            String(minutes).padStart(2, '0') + ':' +
+            String(seconds).padStart(2, '0') + '.' +
+            String(centiseconds).padStart(2, '0');
+    }
+
+    function update() {
+        elapsed = Date.now() - startTime;
+        display.textContent = format(elapsed);
+    }
+
+    function startTimer() {
+        if (running) return;
+        running = true;
+        display.classList.add('running');
+        startTime = Date.now() - elapsed;
+        timer = setInterval(update, 10);
+    }
+
+    function stopTimer() {
+        if (!running) return;
+        running = false;
+        display.classList.remove('running');
+        clearInterval(timer);
+    }
+
+    function resetTimer() {
+        stopTimer();
+        elapsed = 0;
+        lapCount = 1;
+        display.textContent = '00:00:00.00';
+        display.classList.remove('running');
+        laps.innerHTML = `<div class="empty-laps-msg">— no laps yet —</div>`;
+    }
+
+    function lapTime() {
+        if (elapsed === 0) return;
+
+        const emptyMsg = laps.querySelector('.empty-laps-msg');
+        if (emptyMsg) emptyMsg.remove();
+
+        const div = document.createElement('div');
+        div.className = 'lap-item';
+        div.innerHTML = `
+            <span>Lap ${lapCount++}</span>
+            <span>${format(elapsed)}</span>
+        `;
+        laps.prepend(div);
+    }
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+        if (e.key === ' ' || e.key === 'Space') {
+            e.preventDefault();
+            if (running) stopTimer();
+            else startTimer();
+        }
+        if (e.key === 'r' || e.key === 'R') resetTimer();
+        if (e.key === 'l' || e.key === 'L') lapTime();
+    });
+</script>
+
+</body>
+</html>
